@@ -9,4 +9,9 @@ class Patient < ApplicationRecord
   validates :email, presence: true,
                     uniqueness: true,
                     format: { with: URI::MailTo::EMAIL_REGEXP }
+
+  # Providers this patient has an active subscription with.
+  def active_providers
+    providers.merge(Subscription.active)
+  end
 end

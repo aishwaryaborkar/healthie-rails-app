@@ -35,6 +35,8 @@ _TODO_
 ## Future work
 
 - Provider credentials and licensing, stored per state.
+- Queries for other statuses. All four queries only use active subscriptions, on the assumption that providers mostly care about current patients. Supporting paused or pending patients would mean passing a status in, or dropping the filter.
+- Feed pagination. The feed returns every entry today. The next step is a cursor: the client sends back the last entry's `created_at` and `id`, and the next page is `WHERE (created_at, id) < (cursor) ORDER BY created_at DESC, id DESC LIMIT n`. The `(patient_id, created_at, id)` index makes that a quick range read. I'd use a cursor over `OFFSET` because offset still reads every skipped row, and new entries shift the pages.
 
 ## Known gaps
 
