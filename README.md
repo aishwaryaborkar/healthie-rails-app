@@ -4,11 +4,69 @@ A Rails 8.1 app on Postgres. It's a data layer only: models, migrations, seeds a
 
 ## Running it locally
 
-_TODO_
+You need Ruby 3.4.12 (see `.ruby-version`) and Postgres 13 or newer running locally.
+
+```
+bundle install
+bin/rails db:setup                      # create the databases, load the schema, seed sample data
+bin/rails runner script/queries.rb      # run the four required queries against the seed data
+```
+
+By default Rails connects to Postgres as your OS user. To use a different user or host, set `DATABASE_URL`, for example `DATABASE_URL=postgres://user:pass@localhost/healthie_rails_app_development`.
+
+To explore the data yourself, open `bin/rails console`:
+
+```ruby
+lee = Provider.find_by(email: "dr.lee@example.com")
+lee.active_patients      # 1. patients for a provider
+lee.journal_feed         # 4. entries across a provider's patients, newest first
+
+maria = Patient.find_by(email: "maria@example.com")
+maria.active_providers                  # 2. providers for a patient
+maria.journal_entries.newest_first      # 3. a patient's entries, newest first
+```
+
+Each query is a single SQL query. Append `.to_sql` to see it.
+
+### Sample data
+
+| | Dr. Lee | Dr. Patel |
+|---|---|---|
+| Maria | premium | basic |
+| Sam | basic | none |
+| Jo | none | none |
+
+All subscriptions are active. Maria has 3 journal entries, Sam 2 and Jo 1. Jo's entry never appears in a provider's feed.
 
 ## Data model
 
-_TODO_
+```mermaid
+erDiagram
+    PROVIDER ||--o{ SUBSCRIPTION : has
+    PATIENT  ||--o{ SUBSCRIPTION : has
+    PLAN     ||--o{ SUBSCRIPTION : "is chosen by"
+    PATIENT  ||--o{ JOURNAL_ENTRY : writes
+
+    PROVIDER { uuid id string first_name string last_name string email }
+    PATIENT  { uuid id string first_name string last_name string email }
+    PLAN     { uuid id string name }
+    SUBSCRIPTION { uuid id uuid patient_id uuid provider_id uuid plan_id string status }
+    JOURNAL_ENTRY { uuid id uuid patient_id text body }
+```
+
+Every table also has `created_at` and `updated_at`.
+
+A subscription is the link between one patient and one provider. Patients and providers are many-to-many through it. Journal entries belong to the patient only. A provider reaches them through an active subscription.
+
+Indexes:
+
+| Index | Used for |
+|---|---|
+| `providers.email`, `patients.email`, `plans.name` (unique) | Lookups and the uniqueness rules |
+| `subscriptions (patient_id, provider_id)` (unique) | One subscription per pair, and a patient's providers |
+| `subscriptions.provider_id` | A provider's patients, and the first step of the feed |
+| `subscriptions.plan_id` | The foreign key check when a plan is deleted |
+| `journal_entries (patient_id, created_at, id)` | A patient's entries newest first, the feed, and a future pagination cursor |
 
 ## Design decisions
 
@@ -38,6 +96,12 @@ _TODO_
 - Queries for other statuses. All four queries only use active subscriptions, on the assumption that providers mostly care about current patients. Supporting paused or pending patients would mean passing a status in, or dropping the filter.
 - Feed pagination. The feed returns every entry today. The next step is a cursor: the client sends back the last entry's `created_at` and `id`, and the next page is `WHERE (created_at, id) < (cursor) ORDER BY created_at DESC, id DESC LIMIT n`. The `(patient_id, created_at, id)` index makes that a quick range read. I'd use a cursor over `OFFSET` because offset still reads every skipped row, and new entries shift the pages.
 
+- Billing. A next billing date on the subscription would be simple to add. Payment methods should live with a payment processor such as Stripe, with only a reference stored here.
+
 ## Known gaps
 
-_TODO_
+- No automated tests. The queries are checked by running `script/queries.rb` against the seed data.
+- No authorization. Nothing yet checks who is asking for data. UUIDs make IDs hard to guess, but they don't control access.
+- No pagination on the feed (see Future work).
+- No audit history (see Open questions).
+- No API or UI. This is a data layer only.
