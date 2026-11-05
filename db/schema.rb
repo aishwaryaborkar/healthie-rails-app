@@ -10,9 +10,17 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_05_002023) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_05_170047) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "journal_entries", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "patient_id", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["patient_id", "created_at", "id"], name: "index_journal_entries_on_patient_id_and_created_at_and_id"
+  end
 
   create_table "patients", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "first_name", null: false
@@ -52,6 +60,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_002023) do
     t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'active'::character varying, 'paused'::character varying, 'cancelled'::character varying]::text[])", name: "subscriptions_status_check"
   end
 
+  add_foreign_key "journal_entries", "patients"
   add_foreign_key "subscriptions", "patients"
   add_foreign_key "subscriptions", "plans"
   add_foreign_key "subscriptions", "providers"

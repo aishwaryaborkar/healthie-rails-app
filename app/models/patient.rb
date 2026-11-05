@@ -1,6 +1,7 @@
 class Patient < ApplicationRecord
   has_many :subscriptions, dependent: :restrict_with_error
   has_many :providers, through: :subscriptions
+  has_many :journal_entries, dependent: :restrict_with_error
 
   normalizes :email, with: ->(email) { email.strip.downcase }
 
