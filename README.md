@@ -22,6 +22,7 @@ _TODO: tables and associations diagram._
 - **Subscription status is a fixed list**: `pending`, `active`, `paused`, `cancelled`, stored as a column with a database check constraint. Unlike plans, statuses drive code (only `active` grants access), so a table would add a join without adding flexibility.
 - **Only active subscriptions grant access.** A provider sees a patient's journal entries only while their subscription is `active`. Cancelling removes access to all entries, including older ones (see open questions).
 - **One subscription per patient–provider pair**, enforced by a unique index and a validation. Re-subscribing reactivates the existing row.
+- **Deleting a patient, provider or plan that still has subscriptions is blocked** (`dependent: :restrict_with_error`, backed by foreign keys). Clinical history shouldn't vanish silently: subscriptions are cancelled, not deleted.
 
 ## Open product questions
 

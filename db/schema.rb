@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_05_001622) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_05_002023) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -38,4 +38,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_05_001622) do
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_providers_on_email", unique: true
   end
+
+  create_table "subscriptions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "patient_id", null: false
+    t.uuid "provider_id", null: false
+    t.uuid "plan_id", null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["patient_id", "provider_id"], name: "index_subscriptions_on_patient_id_and_provider_id", unique: true
+    t.index ["plan_id"], name: "index_subscriptions_on_plan_id"
+    t.index ["provider_id"], name: "index_subscriptions_on_provider_id"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'active'::character varying, 'paused'::character varying, 'cancelled'::character varying]::text[])", name: "subscriptions_status_check"
+  end
+
+  add_foreign_key "subscriptions", "patients"
+  add_foreign_key "subscriptions", "plans"
+  add_foreign_key "subscriptions", "providers"
 end

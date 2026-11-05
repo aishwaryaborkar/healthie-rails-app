@@ -1,4 +1,7 @@
 class Provider < ApplicationRecord
+  has_many :subscriptions, dependent: :restrict_with_error
+  has_many :patients, through: :subscriptions
+
   normalizes :email, with: ->(email) { email.strip.downcase }
 
   validates :first_name, :last_name, presence: true
