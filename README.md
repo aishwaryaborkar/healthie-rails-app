@@ -30,11 +30,11 @@ Each query is a single SQL query. Append `.to_sql` to see it.
 
 ### Sample data
 
-| | Dr. Lee | Dr. Patel |
-|---|---|---|
-| Maria | premium | basic |
-| Sam | basic | none |
-| Jo | none | none |
+|       | Dr. Lee | Dr. Patel |
+| ----- | ------- | --------- |
+| Maria | premium | basic     |
+| Sam   | basic   | none      |
+| Jo    | none    | none      |
 
 All subscriptions are active. Maria has 3 journal entries, Sam 2 and Jo 1. Jo's entry never appears in a provider's feed.
 
@@ -60,13 +60,13 @@ A subscription is the link between one patient and one provider. Patients and pr
 
 Indexes:
 
-| Index | Used for |
-|---|---|
-| `providers.email`, `patients.email`, `plans.name` (unique) | Lookups and the uniqueness rules |
-| `subscriptions (patient_id, provider_id)` (unique) | One subscription per pair, and a patient's providers |
-| `subscriptions.provider_id` | A provider's patients, and the first step of the feed |
-| `subscriptions.plan_id` | The foreign key check when a plan is deleted |
-| `journal_entries (patient_id, created_at, id)` | A patient's entries newest first, the feed, and a future pagination cursor |
+| Index                                                      | Used for                                                                   |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `providers.email`, `patients.email`, `plans.name` (unique) | Lookups and the uniqueness rules                                           |
+| `subscriptions (patient_id, provider_id)` (unique)         | One subscription per pair, and a patient's providers                       |
+| `subscriptions.provider_id`                                | A provider's patients, and the first step of the feed                      |
+| `subscriptions.plan_id`                                    | The foreign key check when a plan is deleted                               |
+| `journal_entries (patient_id, created_at, id)`             | A patient's entries newest first, the feed, and a future pagination cursor |
 
 ## Design decisions
 
@@ -105,3 +105,11 @@ Indexes:
 - No pagination on the feed (see Future work).
 - No audit history (see Open questions).
 - No API or UI. This is a data layer only.
+
+## How I used AI
+
+I used Claude Code as a design partner.
+
+- **Design.** I used brainstorming and "grill me" sessions to work through the data model before writing code. Examples: where the plan should live, how status gates access, which indexes the feed needs, and what changes at large scale. I made each decision listed above, and the open questions came out of those sessions.
+- **Code.** Claude Code ran the Rails generators and wrote the files based on those decisions. I work mostly with Node ORMs like Prisma and Sequelize, so I paired with Claude to refresh my Rails and to see how familiar ORM patterns map to ActiveRecord.
+- **Checking.** I ran every migration myself, tested the validations in the console, and checked each query's output against the seed data.
